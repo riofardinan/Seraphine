@@ -8,7 +8,7 @@ feature extractor applies its own zero-mean/unit-variance waveform normalisation
 Usage:
     python extract_ssl.py --model wav2vec2     # facebook/wav2vec2-base       (768-d)
     python extract_ssl.py --model hubert       # facebook/hubert-base-ls960   (768-d)
-    python extract_ssl.py --model xlsr         # facebook/wav2vec2-xls-r-300m (1024-d, multilingual)
+    python extract_ssl.py --model xlsr_id      # indonesian-nlp/wav2vec2-large-xlsr-indonesian (1024-d, ASR-finetuned ID)
 
 Needs torch + transformers (see requirements-deep.txt). GPU strongly recommended.
 Output: outputs/features_{wav2vec2,hubert}.csv
@@ -28,7 +28,9 @@ import config
 MODELS = {
     "wav2vec2": (Wav2Vec2Model, config.WAV2VEC2_MODEL),
     "hubert": (HubertModel, config.HUBERT_MODEL),
-    "xlsr": (Wav2Vec2Model, config.XLSR_MODEL),      # XLS-R uses the Wav2Vec2 architecture
+    # ASR-finetuned (Wav2Vec2ForCTC) checkpoint: Wav2Vec2Model loads the encoder
+    # and drops the CTC head (a "weights not used: lm_head" warning is expected).
+    "xlsr_id": (Wav2Vec2Model, config.XLSR_ID_MODEL),
 }
 
 

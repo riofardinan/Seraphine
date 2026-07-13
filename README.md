@@ -12,7 +12,7 @@ score come only from the representation:
 | 2 | wav2vec2-base + SVM | `facebook/wav2vec2-base`, mean-pooled | 768 | 16 kHz | GPU |
 | 3 | HuBERT-base + SVM | `facebook/hubert-base-ls960`, mean-pooled | 768 | 16 kHz | GPU |
 | 4 | emotion2vec + SVM | `iic/emotion2vec_base`, utterance emb | 768 | 16 kHz | GPU |
-| 6 | XLS-R + SVM | `facebook/wav2vec2-xls-r-300m`, mean-pooled | 1024 | 16 kHz | GPU |
+| 6 | XLSR-ID + SVM | `indonesian-nlp/wav2vec2-large-xlsr-indonesian`, mean-pooled | 1024 | 16 kHz | GPU |
 
 **Shared, identical across all four** (`common.py`):
 - Silence-trim edges (`top_db=40`), mono downmix; **no** manual amplitude norm.
@@ -73,15 +73,17 @@ python run_baseline.py --baseline egemaps
 python extract_ssl.py --model wav2vec2   && python run_baseline.py --baseline wav2vec2
 python extract_ssl.py --model hubert     && python run_baseline.py --baseline hubert
 python extract_emotion2vec.py            && python run_baseline.py --baseline emotion2vec
-python extract_ssl.py --model xlsr        && python run_baseline.py --baseline xlsr
+python extract_ssl.py --model xlsr_id     && python run_baseline.py --baseline xlsr_id
 
 # Baseline 5 (separate deep-learning baseline; GPU, needs only torch)
 python run_mfcc_cnn.py
 ```
 
-> **Baseline 6 (XLS-R)** tests whether *multilingual* pretraining helps Indonesian.
-> Caveat: `xls-r-300m` is larger (300M, 1024-d) than the base models, so vs
-> baseline 2 it changes both language coverage and model size — note that confound.
+> **Baseline 6 (XLSR-ID)** = `wav2vec2-large-xlsr-indonesian`, XLSR-53 large
+> **fine-tuned for Indonesian ASR** — the only in-language model. Tests whether
+> in-language ASR fine-tuning helps SER (per Wagner et al., ASR fine-tuning may
+> *not* help SER). Caveat: it is large (1024-d) and ASR-finetuned, so vs the base
+> self-supervised models (2-4) both language and training objective differ.
 
 ## Outputs (`outputs/results/`, one set per baseline)
 

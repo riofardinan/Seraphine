@@ -49,7 +49,7 @@ SVM_C = 1.0                 # fixed default; grid-search over C is a separate ab
 WAV2VEC2_MODEL = "facebook/wav2vec2-base"        # self-supervised, non-ASR-finetuned
 HUBERT_MODEL = "facebook/hubert-base-ls960"      # self-supervised, non-ASR-finetuned
 EMOTION2VEC_MODEL = "iic/emotion2vec_base"       # base, apple-to-apple with base SSL
-XLSR_MODEL = "facebook/wav2vec2-xls-r-300m"      # multilingual (128 langs), 300M, 1024-d
+XLSR_ID_MODEL = "indonesian-nlp/wav2vec2-large-xlsr-indonesian"  # xlsr-53 large, Indonesian ASR-finetuned, 1024-d
 
 # --- Baseline 5: MFCC + CNN -------------------------------------------------
 # SEPARATE deep-learning baseline (trained end-to-end), NOT part of the frozen

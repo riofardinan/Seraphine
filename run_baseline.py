@@ -25,7 +25,7 @@ BASELINES = {
     "wav2vec2": ("wav2vec2", "baseline2_wav2vec2", False),
     "hubert": ("hubert", "baseline3_hubert", False),
     "emotion2vec": ("emotion2vec", "baseline4_emotion2vec", False),
-    "xlsr": ("xlsr", "baseline6_xlsr", False),
+    "xlsr_id": ("xlsr_id", "baseline6_xlsr_id", False),
 }
 
 

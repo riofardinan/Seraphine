@@ -85,34 +85,54 @@ def _make_pipeline() -> Pipeline:
 
 
 def run_loso(df: pd.DataFrame, name: str, feature_importance: bool = False) -> dict:
-    """Leave-One-Speaker-Out evaluation on a feature table.
+    """LOSO evaluation of the shared frozen-feature + linear-SVM pipeline.
 
-    df must contain config.META_COLS + one column per feature. Writes
-    <name>_per_fold_results.csv, <name>_summary.csv, <name>_confusion_matrices.csv,
-    <name>_confusion_matrix.png (+ <name>_feature_importance.csv if requested).
+    df must contain config.META_COLS + one column per feature. Used by baselines
+    1-4 (eGeMAPS / wav2vec2 / HuBERT / emotion2vec).
     """
     feat_cols = [c for c in df.columns if c not in config.META_COLS]
     X = df[feat_cols].to_numpy(dtype=float)
     y = df["emotion"].to_numpy()
     groups = df["speaker"].to_numpy()
-    emos = config.EMOTIONS
     print(f"[{name}] X={X.shape}  speakers={sorted(set(groups))}  "
           f"classifier=LinearSVC(C={config.SVM_C})")
 
     preds = np.empty(len(y), dtype=object)
-    fold_rows, cm_frames, coefs = [], [], []
-
+    coefs = []
     for tr, te in LeaveOneGroupOut().split(X, y, groups):
-        sp = groups[te][0]
         pipe = _make_pipeline()
-        pipe.fit(X[tr], y[tr])                          # scaler fit on train only
-        yp = pipe.predict(X[te])
-        preds[te] = yp
-        yt = y[te]
+        pipe.fit(X[tr], y[tr])                          # scaler fit on train fold only
+        preds[te] = pipe.predict(X[te])
+        if feature_importance:
+            coefs.append(np.abs(pipe.named_steps["svm"].coef_))
 
+    return report_loso(name, y, preds, groups,
+                       coefs=coefs or None, feat_cols=feat_cols)
+
+
+def report_loso(name, y, preds, groups, coefs=None, feat_cols=None) -> dict:
+    """Compute per-fold + pooled metrics from LOSO predictions and write outputs.
+
+    Shared by the SVM baselines and the MFCC+CNN baseline so every baseline emits
+    the same files: <name>_per_fold_results.csv, <name>_summary.csv,
+    <name>_confusion_matrices.csv, <name>_confusion_matrix.png
+    (+ <name>_feature_importance.csv when coefs/feat_cols are given).
+
+    Each sample is a test sample exactly once under LOSO, so folds are recovered
+    by grouping predictions per test speaker.
+    """
+    y = np.asarray(y)
+    preds = np.asarray(preds)
+    groups = np.asarray(groups)
+    emos = config.EMOTIONS
+
+    fold_rows, cm_frames = [], []
+    for sp in pd.unique(groups):
+        m = groups == sp
+        yt, yp = y[m], preds[m]
         row = {
             "test_speaker": sp,
-            "n_test": int(len(te)),
+            "n_test": int(m.sum()),
             "accuracy": accuracy_score(yt, yp),
             "macro_f1": f1_score(yt, yp, average="macro", labels=emos),
             "uar": recall_score(yt, yp, average="macro", labels=emos),
@@ -132,21 +152,18 @@ def run_loso(df: pd.DataFrame, name: str, feature_importance: bool = False) -> d
         cmf = pd.DataFrame(cm, index=emos, columns=emos).reset_index(names="true")
         cmf.insert(0, "fold", sp)
         cm_frames.append(cmf)
-        if feature_importance:
-            coefs.append(np.abs(pipe.named_steps["svm"].coef_))
 
     fold_df = pd.DataFrame(fold_rows)
     metric_cols = [c for c in fold_df.columns if c not in ("test_speaker", "n_test")]
 
-    # Pooled (all predictions concatenated) + per-fold mean/std
     pooled_acc = accuracy_score(y, preds)
     pooled_f1 = f1_score(y, preds, average="macro", labels=emos)
     pooled_uar = recall_score(y, preds, average="macro", labels=emos)
 
     print("-" * 58)
     print(f"[{name}] per-speaker mean +/- std over {len(fold_df)} folds:")
-    for m in ("accuracy", "macro_f1", "uar"):
-        print(f"    {m:9} {fold_df[m].mean():.3f} +/- {fold_df[m].std():.3f}")
+    for mname in ("accuracy", "macro_f1", "uar"):
+        print(f"    {mname:9} {fold_df[mname].mean():.3f} +/- {fold_df[mname].std():.3f}")
     print(f"[{name}] pooled: acc={pooled_acc:.3f}  macroF1={pooled_f1:.3f}  UAR={pooled_uar:.3f}")
     print("\n" + classification_report(y, preds, labels=emos, digits=3))
 
@@ -161,16 +178,15 @@ def run_loso(df: pd.DataFrame, name: str, feature_importance: bool = False) -> d
     summary.loc["pooled_uar"] = [pooled_uar, np.nan]
     summary.to_csv(config.RESULTS_DIR / f"{name}_summary.csv")
 
-    cm_all = pd.concat(cm_frames, ignore_index=True)
     pooled_cm = confusion_matrix(y, preds, labels=emos)
     pooled_frame = pd.DataFrame(pooled_cm, index=emos, columns=emos).reset_index(names="true")
     pooled_frame.insert(0, "fold", "POOLED")
-    cm_all = pd.concat([cm_all, pooled_frame], ignore_index=True)
-    cm_all.to_csv(config.RESULTS_DIR / f"{name}_confusion_matrices.csv", index=False)
+    pd.concat(cm_frames + [pooled_frame], ignore_index=True).to_csv(
+        config.RESULTS_DIR / f"{name}_confusion_matrices.csv", index=False)
 
     _plot_confusion(pooled_cm, name, pooled_acc)
 
-    if coefs:
+    if coefs and feat_cols:
         mean_abs = np.mean(coefs, axis=0)               # (n_classes, n_features)
         imp = pd.DataFrame({"feature": feat_cols, "importance": mean_abs.mean(axis=0)})
         for i, e in enumerate(emos):

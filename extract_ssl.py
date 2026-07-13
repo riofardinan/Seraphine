@@ -6,8 +6,9 @@ feature extractor applies its own zero-mean/unit-variance waveform normalisation
 -> mean-pool over time -> 768-d vector. Model is frozen (eval / no_grad).
 
 Usage:
-    python extract_ssl.py --model wav2vec2     # facebook/wav2vec2-base
-    python extract_ssl.py --model hubert       # facebook/hubert-base-ls960
+    python extract_ssl.py --model wav2vec2     # facebook/wav2vec2-base       (768-d)
+    python extract_ssl.py --model hubert       # facebook/hubert-base-ls960   (768-d)
+    python extract_ssl.py --model xlsr         # facebook/wav2vec2-xls-r-300m (1024-d, multilingual)
 
 Needs torch + transformers (see requirements-deep.txt). GPU strongly recommended.
 Output: outputs/features_{wav2vec2,hubert}.csv
@@ -27,6 +28,7 @@ import config
 MODELS = {
     "wav2vec2": (Wav2Vec2Model, config.WAV2VEC2_MODEL),
     "hubert": (HubertModel, config.HUBERT_MODEL),
+    "xlsr": (Wav2Vec2Model, config.XLSR_MODEL),      # XLS-R uses the Wav2Vec2 architecture
 }
 
 

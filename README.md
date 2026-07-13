@@ -12,6 +12,7 @@ score come only from the representation:
 | 2 | wav2vec2-base + SVM | `facebook/wav2vec2-base`, mean-pooled | 768 | 16 kHz | GPU |
 | 3 | HuBERT-base + SVM | `facebook/hubert-base-ls960`, mean-pooled | 768 | 16 kHz | GPU |
 | 4 | emotion2vec + SVM | `iic/emotion2vec_base`, utterance emb | 768 | 16 kHz | GPU |
+| 6 | XLS-R + SVM | `facebook/wav2vec2-xls-r-300m`, mean-pooled | 1024 | 16 kHz | GPU |
 
 **Shared, identical across all four** (`common.py`):
 - Silence-trim edges (`top_db=40`), mono downmix; **no** manual amplitude norm.
@@ -25,6 +26,11 @@ score come only from the representation:
 > loudness feature, while the SSL models require 16 kHz and normalise the waveform
 > (`do_normalize=True`). That is inherent to the methods — report it as a caveat.
 
+**Baseline 5 (separate): MFCC + CNN.** A trained CNN on MFCC(40)+Δ+ΔΔ, *outside*
+the frozen apple-to-apple set — here the CNN is the classifier, so it answers a
+different question (trained deep model vs frozen representation on small data).
+Kept comparable at reporting level only: same LOSO split + same output files.
+
 ## Files
 
 | File | Role |
@@ -35,14 +41,23 @@ score come only from the representation:
 | `extract_egemaps.py` | Baseline 1 features → `outputs/features_egemaps.csv` |
 | `extract_ssl.py --model {wav2vec2,hubert}` | Baseline 2/3 features |
 | `extract_emotion2vec.py` | Baseline 4 features |
-| `run_baseline.py --baseline {egemaps,wav2vec2,hubert,emotion2vec}` | shared eval → `outputs/results/` |
+| `run_baseline.py --baseline {egemaps,wav2vec2,hubert,emotion2vec}` | shared eval (baselines 1-4) → `outputs/results/` |
+| `run_mfcc_cnn.py` | Baseline 5 (MFCC+CNN): MFCC precompute + CNN training + LOSO |
 
 ## Setup
 
+Baseline 1 (CPU) works on any recent Python (3.11-3.14):
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt            # baseline 1 (CPU)
-pip install -r requirements-deep.txt       # baselines 2-4 (GPU box); match torch to your CUDA
+pip install -r requirements.txt
+```
+
+Baselines 2-6 (torch / transformers / funasr) need a **Python 3.11 or 3.12** venv —
+on Python 3.14 those deps (incl. funasr's `editdistance`) have no wheels yet and
+fall back to a source build that needs a C/C++ compiler:
+```bash
+python3.12 -m venv .venv-deep && source .venv-deep/bin/activate
+pip install -r requirements.txt -r requirements-deep.txt   # match torch to your CUDA
 ```
 
 ## Run
@@ -58,7 +73,15 @@ python run_baseline.py --baseline egemaps
 python extract_ssl.py --model wav2vec2   && python run_baseline.py --baseline wav2vec2
 python extract_ssl.py --model hubert     && python run_baseline.py --baseline hubert
 python extract_emotion2vec.py            && python run_baseline.py --baseline emotion2vec
+python extract_ssl.py --model xlsr        && python run_baseline.py --baseline xlsr
+
+# Baseline 5 (separate deep-learning baseline; GPU, needs only torch)
+python run_mfcc_cnn.py
 ```
+
+> **Baseline 6 (XLS-R)** tests whether *multilingual* pretraining helps Indonesian.
+> Caveat: `xls-r-300m` is larger (300M, 1024-d) than the base models, so vs
+> baseline 2 it changes both language coverage and model size — note that confound.
 
 ## Outputs (`outputs/results/`, one set per baseline)
 

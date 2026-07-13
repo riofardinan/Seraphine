@@ -49,5 +49,22 @@ SVM_C = 1.0                 # fixed default; grid-search over C is a separate ab
 WAV2VEC2_MODEL = "facebook/wav2vec2-base"        # self-supervised, non-ASR-finetuned
 HUBERT_MODEL = "facebook/hubert-base-ls960"      # self-supervised, non-ASR-finetuned
 EMOTION2VEC_MODEL = "iic/emotion2vec_base"       # base, apple-to-apple with base SSL
+XLSR_MODEL = "facebook/wav2vec2-xls-r-300m"      # multilingual (128 langs), 300M, 1024-d
+
+# --- Baseline 5: MFCC + CNN -------------------------------------------------
+# SEPARATE deep-learning baseline (trained end-to-end), NOT part of the frozen
+# apple-to-apple set. Same LOSO split + output format, different classifier.
+MFCC_SR = 16000            # standard rate for MFCC-SER; compact CNN input
+N_MFCC = 40                # + delta + delta-delta -> 3 input channels
+MFCC_N_FFT = 1024
+MFCC_HOP = 512
+MFCC_MAX_SECONDS = 4.0     # crop/pad MFCC to this many seconds for batching
+CNN_EPOCHS = 60
+CNN_BATCH = 32
+CNN_LR = 1e-3
+CNN_WEIGHT_DECAY = 1e-4
+CNN_DROPOUT = 0.5
+CNN_PATIENCE = 12          # early-stopping patience (on inner validation)
+CNN_VAL_FRAC = 0.15        # inner val split for early stopping (test speaker stays held out)
 
 RANDOM_STATE = 42

@@ -1,0 +1,7 @@
+# Deep baselines 2-4 - run on the GPU (RTX 5070) machine.
+# Install AFTER requirements.txt. Pick the torch build matching your CUDA:
+#   https://pytorch.org/get-started/locally/
+torch>=2.2
+transformers>=4.40        # baseline 2 (wav2vec2-base) + 3 (hubert-base-ls960)
+funasr>=1.1               # baseline 4 (emotion2vec)
+modelscope>=1.15          # emotion2vec checkpoint download

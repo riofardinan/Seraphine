@@ -1,6 +1,5 @@
-# Classical SER baseline (eGeMAPS + SVM) - CPU only, no GPU needed.
-# Versions below were validated on Python 3.14. On another machine, plain
-# `pip install -r requirements.txt` should resolve compatible wheels.
+# Core + Baseline 1 (eGeMAPS + SVM) - CPU only.
+# Baselines 2-4 (wav2vec2 / HuBERT / emotion2vec) need requirements-deep.txt too.
 numpy>=2.0
 pandas>=2.0
 scipy>=1.13
